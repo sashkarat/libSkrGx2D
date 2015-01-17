@@ -339,7 +339,7 @@ public abstract class BaseScreen implements Screen, InputProcessor {
             font.drawMultiLine( fontBatch, " " + x,
                     (x + offsetX) / z, (y2 + offsetY) / z - 2 );
             font.setColor( 0.2f, 0.8f, 1, 1);
-            font.drawMultiLine( fontBatch, " " + Env.world.toPhys(x),
+            font.drawMultiLine( fontBatch, " " + Env.get().world.toPhys(x),
                     (x + offsetX) / z, (y1 + offsetY) / z + 20 );
             x += delta;
         }
@@ -349,7 +349,7 @@ public abstract class BaseScreen implements Screen, InputProcessor {
             font.drawMultiLine( fontBatch, " " + y,
                     (x1 + offsetX) / z + 2, (y + offsetY) / z );
             font.setColor( 0.2f, 0.8f, 1, 1);
-            font.drawMultiLine( fontBatch, " " + Env.world.toPhys(y),
+            font.drawMultiLine( fontBatch, " " + Env.get().world.toPhys(y),
                     (x2 + offsetX) / z - 35, (y + offsetY) / z );
             y+= delta;
         }
@@ -397,7 +397,7 @@ public abstract class BaseScreen implements Screen, InputProcessor {
         stage.act( delta );
         stage.draw();
 
-        if ( Env.debugRender ) {
+        if ( Env.get().debugRender ) {
             debugRender();
         }
 
@@ -420,12 +420,12 @@ public abstract class BaseScreen implements Screen, InputProcessor {
 
     @Override
     public void show() {
-        Env.sceneProvider.setStage( stage );
+        Env.get().sceneProvider.setStage( stage );
     }
 
     @Override
     public void hide() {
-        Env.sceneProvider.setStage( null );
+        Env.get().sceneProvider.setStage( null );
     }
 
     @Override

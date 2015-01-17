@@ -3,45 +3,48 @@ package org.skr.gx2d.scene;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.utils.Array;
 import org.skr.SkrScript.ValuePool;
 import org.skr.gx2d.common.Env;
 import org.skr.gx2d.node.Node;
-import org.skr.gx2d.node.annotation.NodeAddMethod;
-import org.skr.gx2d.node.annotation.NodeField;
+import org.skr.gx2d.node.annotation.NodeAddMethodAnnotation;
+import org.skr.gx2d.node.annotation.Nfa;
 import org.skr.gx2d.utils.ModShapeRenderer;
+import org.skr.gx2d.utils.Utils;
 
 /**
  * Created by rat on 04.01.15.
  */
 public class Scene extends Node implements SceneWorkFlow {
 
-    World world;
+    Array<SceneStateListener> sceneStateListeners = new Array<SceneStateListener>();
+
     CameraController cameraController;
     OrthographicCamera camera;
 
     ValuePool valPool = new ValuePool();
 
-    @NodeField
+    @Nfa
     String modelDirectory = "";
 
-    @NodeField
+    @Nfa
     float viewCenterX = 0;
-    @NodeField
+    @Nfa
     float viewCenterY = 0;
 
-    @NodeField
+    @Nfa
     float viewLeft = -500;
-    @NodeField
+    @Nfa
     float viewRight = 500;
-    @NodeField
+    @Nfa
     float viewTop = 500;
-    @NodeField
+    @Nfa
     float viewBottom = -500;
 
-    @NodeField
-    @NodeAddMethod( name = "addModelHandler" )
+    @Nfa
+    @NodeAddMethodAnnotation( name = "addModelHandler" )
     ModelHandler modelHandler;
 
     boolean activePhysics = false;
@@ -52,6 +55,9 @@ public class Scene extends Node implements SceneWorkFlow {
 
     CollisionSolver collisionSolver;
     ModShapeRenderer shapeRenderer;
+
+    boolean graphicsConstructed = false;
+    boolean physicsConstructed = false;
 
     public Scene() {
         super();
@@ -71,15 +77,6 @@ public class Scene extends Node implements SceneWorkFlow {
     @Override
     public boolean isType(Type type) {
         return type == Type.Scene;
-    }
-
-    public World getWorld() {
-        return world;
-    }
-
-    public void setWorld(World world) {
-        this.world = world;
-        world.setContactListener( collisionSolver );
     }
 
     public String getModelDirectory() {
@@ -178,6 +175,14 @@ public class Scene extends Node implements SceneWorkFlow {
         this.positionIterations = positionIterations;
     }
 
+    public boolean isGraphicsConstructed() {
+        return graphicsConstructed;
+    }
+
+    public boolean isPhysicsConstructed() {
+        return physicsConstructed;
+    }
+
     public ModelHandler getModelHandler() {
         return modelHandler;
     }
@@ -191,7 +196,44 @@ public class Scene extends Node implements SceneWorkFlow {
     public ModelHandler addModelHandler( ModelHandler mh ) {
         if ( modelHandler == null )
             return setModelHandler( mh );
+
+        if ( physicsConstructed ) {
+            if ( ! mh.isModelLoaded() )
+                mh.loadModelFromResource();
+            mh.constructPhysics();
+        }
+
+        if ( graphicsConstructed ) {
+            if ( ! mh.isModelLoaded() )
+                mh.loadModelFromResource();
+            mh.constructGraphics();
+            addActor( mh );
+        }
         return (ModelHandler) modelHandler.appendNode( mh );
+    }
+
+    public ModelHandler removeModelHandler( ModelHandler mh ) {
+
+        if ( modelHandler == null )
+            return mh;
+
+        if ( ! modelHandler.isNodeInChain( mh ) )
+            return mh;
+
+        mh.remove();
+        mh.removeFromChain();
+
+        return mh;
+    }
+
+    @Override
+    public void addSceneStateListener(SceneStateListener sceneStateListener) {
+        sceneStateListeners.add( sceneStateListener );
+    }
+
+    @Override
+    public void removeSceneStateListener(SceneStateListener sceneStateListener) {
+        sceneStateListeners.removeValue( sceneStateListener, true );
     }
 
     @Override
@@ -200,47 +242,108 @@ public class Scene extends Node implements SceneWorkFlow {
         cameraController = new CameraController( this );
         shapeRenderer = new ModShapeRenderer();
         camera = (OrthographicCamera) stage.getCamera();
+        for ( int i = 0; i < sceneStateListeners.size; i++ )
+            sceneStateListeners.get(i).sceneInitialized(this);
         return false;
     }
 
     @Override
     public void constructGraphics() {
-        ModelHandler mh = modelHandler;
-        while ( mh != null ) {
-            addActor( mh );
-            mh.constructGraphics();
-            mh = (ModelHandler) mh.getNextNode();
+
+        destroyGraphics();
+
+        if ( modelHandler != null ) {
+
+            for (Node n : modelHandler) {
+                ModelHandler mh = (ModelHandler) n;
+                if (!mh.isModelLoaded())
+                    if (!mh.loadModelFromResource())
+                        continue;
+                addActor(mh);
+                mh.constructGraphics();
+            }
         }
+
+        graphicsConstructed = true;
+        for ( int i = 0; i < sceneStateListeners.size; i++ )
+            sceneStateListeners.get(i).sceneGraphicsConstructed(this);
     }
 
     @Override
     public void constructPhysics() {
-    }
 
-    public void doPhysWorldStep() {
-        world.step( timing, velocityIterations, positionIterations );
+        destroyPhysics();
+
+        Env.get().world.box2dWorld().setContactListener(collisionSolver);
+
+        if ( modelHandler != null ) {
+
+            for (Node n : modelHandler) {
+                ModelHandler mh = (ModelHandler) n;
+                if (!mh.isModelLoaded())
+                    if (!mh.loadModelFromResource())
+                        continue;
+                mh.constructPhysics();
+            }
+        }
+
+        physicsConstructed = true;
+
+        for ( int i = 0; i < sceneStateListeners.size; i++ )
+            sceneStateListeners.get(i).scenePhysicsConstructed(this);
     }
 
     @Override
-    public void act(float delta) {
+    public void destroyGraphics() {
+        for (Actor ac : getChildren() )
+            ac.remove();
+        if ( modelHandler == null )
+            return;
+        for ( Node node : modelHandler ) {
+            ModelHandler mh = (ModelHandler) node;
+            mh.destroyGraphics();
+        }
 
+        graphicsConstructed = false;
+    }
+
+    @Override
+    public void destroyPhysics() {
+        if ( modelHandler == null )
+            return;
+        for ( Node node : modelHandler ) {
+            ModelHandler mh = (ModelHandler) node;
+            mh.destroyPhysics();
+        }
+        Env.get().world.box2dWorld().setContactListener(null);
+        physicsConstructed = false;
+    }
+
+    public void doPhysWorldStep() {
+        Env.get().world.step(timing, velocityIterations, positionIterations);
+    }
+
+    @Override
+    protected void nodeAct(float delta) {
         if ( activePhysics ) {
             collisionSolver.reset();
             doPhysWorldStep();
             collisionSolver.runScripts();
         }
+    }
 
-        super.act(delta);
+    @Override
+    protected void nodePostAct(float delta) {
         cameraController.act(delta);
     }
 
     @Override
-    public void draw(Batch batch, float parentAlpha) {
-        super.draw(batch, parentAlpha);
+    protected void nodeDraw(Batch batch, float parentAlpha) {
 
-        if ( !Env.debugRender )
-            return;
+    }
 
+    @Override
+    protected void nodeDebugDraw(Batch batch, float parentAlpha) {
         shapeRenderer.setProjectionMatrix( batch.getProjectionMatrix() );
         shapeRenderer.setTransformMatrix( batch.getTransformMatrix() );
         shapeRenderer.setColor(1, 1, 1, 1);
@@ -250,13 +353,13 @@ public class Scene extends Node implements SceneWorkFlow {
         shapeRenderer.end();
     }
 
-
     @Override
     public void dispose() {
-        ModelHandler mh = modelHandler;
-        while ( mh != null ) {
-            mh.dispose();
-            mh = (ModelHandler) mh.getNextNode();
-        }
+        for ( int i = 0; i < sceneStateListeners.size; i++ )
+            sceneStateListeners.get(i).sceneDisposing(this);
+        if ( modelHandler == null )
+            return;
+        for ( Node node : modelHandler )
+            node.dispose();
     }
 }

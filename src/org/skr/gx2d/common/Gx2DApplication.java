@@ -49,11 +49,11 @@ public abstract class Gx2DApplication extends Game {
 
     @Override
     public void create() {
-        Env.world.createBox2DWorld( cfg.physWorldScale );
-        Env.mshr = new ModShapeRenderer();
+        Env.get().world.createBox2DWorld( cfg.physWorldScale );
+        Env.get().mshr = new ModShapeRenderer();
         if ( ! cfg.internalTextureAtlasPath.isEmpty() ) {
-            Env.taHandle.setInternalTextureAtlasPath(cfg.internalTextureAtlasPath);
-            Env.taHandle.uploadAtlas();
+            Env.get().taHandle.setInternalTextureAtlasPath(cfg.internalTextureAtlasPath);
+            Env.get().taHandle.uploadAtlas();
         }
         onCreate();
     }
@@ -72,9 +72,11 @@ public abstract class Gx2DApplication extends Game {
 
         onDispose();
 
-        Env.sceneProvider.dispose();
-        Env.taHandle.dispose();
-        Env.world.dispose();
+        for ( int i = 0; i < Env.getEnvCount(); i++ ) {
+            Env.get(i).sceneProvider.dispose();
+            Env.get(i).taHandle.dispose();
+            Env.get(i).world.dispose();
+        }
 
         Utils.printMsg("Gx2DApplication.dispose", " done");
     }

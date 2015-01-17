@@ -93,7 +93,7 @@ public class PhysWorld  implements Disposable {
         box2dWorld = new World( gravity, true);
     }
 
-    public World getBox2dWorld() {
+    public World box2dWorld() {
         return box2dWorld;
     }
 
@@ -111,6 +111,10 @@ public class PhysWorld  implements Disposable {
 
     public void step() {
        box2dWorld.step(timing, 8, 8);
+    }
+
+    public void step( float timeStep, int velocityIterations, int positionIterations ) {
+        box2dWorld.step( timeStep, velocityIterations, positionIterations);
     }
 
     public float toView(float v) {

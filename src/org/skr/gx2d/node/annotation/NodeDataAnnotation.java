@@ -4,8 +4,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 /**
- * Created by rat on 04.01.15.
+ * Created by rat on 06.01.15.
  */
 @Retention(RetentionPolicy.RUNTIME)
-public @interface NodeField {
+public @interface NodeDataAnnotation {
+    String name();
+    NodeDataAccessorAnnotation accessor();
 }

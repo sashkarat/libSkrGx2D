@@ -13,7 +13,7 @@ import org.skr.gx2d.physnodes.physdef.JointDefinition;
 /**
  * Created by rat on 13.07.14.
  */
-public class PrismaticJointItem extends JointHandler {
+public class PrismaticJointHandler extends JointHandler {
 
     PrismaticJoint joint;
     Vector2 axis = new Vector2();

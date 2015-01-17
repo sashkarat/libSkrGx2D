@@ -2,28 +2,43 @@ package org.skr.gx2d.scene;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.graphics.g2d.Batch;
+import org.skr.gx2d.common.Env;
 import org.skr.gx2d.model.Model;
-import org.skr.gx2d.node.Node;
 import org.skr.gx2d.node.NodeFactory;
-import org.skr.gx2d.node.annotation.NodeField;
-import org.skr.gx2d.utils.Utils;
+import org.skr.gx2d.node.SceneItem;
+import org.skr.gx2d.node.annotation.Nfa;
 
 /**
  * Created by rat on 05.01.15.
  */
-public class ModelHandler extends Node {
 
-    @NodeField
+public class ModelHandler extends SceneItem {
+
+    @Nfa
     String modelFilePath = "";
 
     String jsonString = "";
 
     Model model;
 
+    public ModelHandler() {
+    }
+
+    @Override
+    protected void nodeAct(float delta) {
+
+    }
+
+    @Override
+    protected void nodeDraw(Batch batch, float parentAlpha) {
+
+    }
+
     @Override
     protected boolean activate(boolean state) {
 //        Utils.printMsg("ModelHandler.activate", "state: " + state + " " + this );
-        return false;
+        return state;
     }
 
     public ModelHandler(String name ) {
@@ -32,7 +47,7 @@ public class ModelHandler extends Node {
     }
 
     public Scene getScene() {
-        return (Scene) getTopNode();
+        return (Scene) topNode();
     }
 
     @Override
@@ -72,7 +87,9 @@ public class ModelHandler extends Node {
         return model != null;
     }
 
-    public boolean loadModel() {
+    public boolean loadModelFromResource() {
+        destroyGraphics();
+        destroyPhysics();
         dispose();
 
         if ( ! modelFilePath.isEmpty() ) {
@@ -86,16 +103,54 @@ public class ModelHandler extends Node {
             return false;
 
         model = (Model) NodeFactory.createNodeFromJSon( jsonString );
+        model.setTopNode( this );
         return model != null;
     }
 
     @Override
     public void constructGraphics() {
-
+        if ( model != null ) {
+            addActor( model );
+            model.constructGraphics();
+        }
     }
 
     @Override
     public void constructPhysics() {
+        if ( model != null )
+            model.constructPhysics();
+    }
 
+    @Override
+    public void destroyGraphics() {
+        if ( model != null ) {
+            model.remove();
+            model.destroyGraphics();
+        }
+    }
+
+    @Override
+    public void destroyPhysics() {
+        if ( model != null )
+            model.destroyPhysics();
+    }
+
+    public void setModel(Model model) {
+        destroyGraphics();
+        destroyPhysics();
+        dispose();
+
+        this.model = model;
+        this.model.setTopNode( this );
+
+        if ( topNode() == null )
+            return;
+
+        if ( getScene().isPhysicsConstructed() )
+            model.constructPhysics();
+        if ( getScene().isGraphicsConstructed() ) {
+            addActor( model );
+            model.constructGraphics();
+        }
     }
 }

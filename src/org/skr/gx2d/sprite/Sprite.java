@@ -14,10 +14,8 @@ import com.badlogic.gdx.utils.Array;
 import org.skr.gx2d.common.Env;
 import org.skr.gx2d.common.TextureAtlasHandle;
 import org.skr.gx2d.node.Node;
-import org.skr.gx2d.node.annotation.NodeData;
-import org.skr.gx2d.node.annotation.NodeDataAccessor;
-import org.skr.gx2d.node.annotation.NodeDataMap;
-import org.skr.gx2d.node.annotation.NodeField;
+import org.skr.gx2d.node.SceneItem;
+import org.skr.gx2d.node.annotation.*;
 import org.skr.gx2d.utils.BBox;
 import org.skr.gx2d.utils.RectangleExt;
 
@@ -27,64 +25,64 @@ import java.util.Stack;
  * Created by rat on 06.01.15.
  */
 
-@NodeDataMap(
+@NodeDataMapAnnotation(
         data = {
-                @NodeData(name = "width",
-                        accessor = @NodeDataAccessor(
+                @NodeDataAnnotation(name = "width",
+                        accessor = @NodeDataAccessorAnnotation(
                                 read = "getWidth",
                                 write = "setWidth",
                                 type = float.class
                         )),
-                @NodeData(name = "height",
-                        accessor = @NodeDataAccessor(
+                @NodeDataAnnotation(name = "height",
+                        accessor = @NodeDataAccessorAnnotation(
                                 read = "getHeight",
                                 write = "setHeight",
                                 type = float.class
                         )),
-                @NodeData(name = "x",
-                        accessor = @NodeDataAccessor(
+                @NodeDataAnnotation(name = "x",
+                        accessor = @NodeDataAccessorAnnotation(
                                 read = "getX",
                                 write = "setX",
                                 type = float.class
                         )),
-                @NodeData(name = "y",
-                        accessor = @NodeDataAccessor(
+                @NodeDataAnnotation(name = "y",
+                        accessor = @NodeDataAccessorAnnotation(
                                 read = "getY",
                                 write = "setY",
                                 type = float.class
                         )),
-                @NodeData(name = "originX",
-                        accessor = @NodeDataAccessor(
+                @NodeDataAnnotation(name = "originX",
+                        accessor = @NodeDataAccessorAnnotation(
                                 read = "getOriginX",
                                 write = "setOriginX",
                                 type = float.class
                         )),
-                @NodeData(name = "originY",
-                        accessor = @NodeDataAccessor(
+                @NodeDataAnnotation(name = "originY",
+                        accessor = @NodeDataAccessorAnnotation(
                                 read = "getOriginY",
                                 write = "setOriginY",
                                 type = float.class
                         )),
-                @NodeData(name = "scaleX",
-                        accessor = @NodeDataAccessor(
+                @NodeDataAnnotation(name = "scaleX",
+                        accessor = @NodeDataAccessorAnnotation(
                                 read = "getScaleX",
                                 write = "setScaleX",
                                 type = float.class
                         )),
-                @NodeData(name = "scaleY",
-                        accessor = @NodeDataAccessor(
+                @NodeDataAnnotation(name = "scaleY",
+                        accessor = @NodeDataAccessorAnnotation(
                                 read = "getScaleY",
                                 write = "setScaleY",
                                 type = float.class
                         )),
-                @NodeData(name = "rotation",
-                        accessor = @NodeDataAccessor(
+                @NodeDataAnnotation(name = "rotation",
+                        accessor = @NodeDataAccessorAnnotation(
                                 read = "getRotation",
                                 write = "setRotation",
                                 type = float.class
                         )),
-                @NodeData(name = "color",
-                        accessor = @NodeDataAccessor(
+                @NodeDataAnnotation(name = "color",
+                        accessor = @NodeDataAccessorAnnotation(
                                 read = "getColor",
                                 write = "setColor",
                                 type = Color.class
@@ -93,10 +91,25 @@ import java.util.Stack;
 )
 
 
-public class Sprite extends Node {
+public class Sprite extends SceneItem implements TextureAtlasHandle.AtlasStateListener {
+
+    @Override
+    public void constructGraphics() {
+        updateTextureRegion( Env.get().taHandle.getAtlas() );
+    }
 
     @Override
     public void constructPhysics() {
+
+    }
+
+    @Override
+    public void destroyGraphics() {
+        dispose();
+    }
+
+    @Override
+    public void destroyPhysics() {
 
     }
 
@@ -104,20 +117,24 @@ public class Sprite extends Node {
         public void render( Sprite sprite, Batch batch );
     }
 
-    @NodeField
+    @Nfa
     String texRegionName = "";
 
-    @NodeField
+    @Nfa
     float frameDuration = 0.02f;
 
-    @NodeField
+    @Nfa
     Animation.PlayMode playMode = Animation.PlayMode.LOOP;
 
-    @NodeField
+    @Nfa
     boolean keepAspectRatio = false;
 
-    @NodeField
+    @Nfa
     boolean drawable = true;
+
+    @Nfa
+    @NodeAddMethodAnnotation( name = "addSubSprite" )
+    Sprite subSprite = null;
 
     private TextureRegion currentRegion;
     private Animation animation;
@@ -127,24 +144,21 @@ public class Sprite extends Node {
 
     private RenderableUserObject renderableUserObject;
 
-    TextureAtlasHandle.AtlasStateListener atlasStateListener = new TextureAtlasHandle.AtlasStateListener() {
-        @Override
-        public void toBeDisposed(TextureAtlas atlas) {
-            currentRegion = null;
-            animation = null;
-            stateTime = 0;
-        }
-
-        @Override
-        public void loaded(TextureAtlas atlas) {
-            updateTextureRegion( atlas );
-        }
-    };
-
-
     public Sprite() {
-        if (Env.taHandle != null )
-            Env.taHandle.addAtlasStateListener( atlasStateListener );
+        if (Env.get().taHandle != null )
+            Env.get().taHandle.addAtlasStateListener( this );
+    }
+
+    @Override
+    public void atlasDisposing(TextureAtlas atlas) {
+        currentRegion = null;
+        animation = null;
+        stateTime = 0;
+    }
+
+    @Override
+    public void atlasLoaded(TextureAtlas atlas) {
+        updateTextureRegion( atlas );
     }
 
     public String getTexRegionName() {
@@ -187,6 +201,23 @@ public class Sprite extends Node {
         this.drawable = drawable;
     }
 
+    public Sprite getSubSprite() {
+        return subSprite;
+    }
+
+    public Sprite setSubSprite(Sprite subSprite) {
+        this.subSprite = subSprite;
+        checkOnSceneState( this.subSprite );
+        return this.subSprite;
+    }
+
+    public Sprite addSubSprite( Sprite sprite ) {
+        if ( subSprite == null )
+            return setSubSprite( sprite );
+        checkOnSceneState(sprite);
+        return (Sprite) subSprite.appendNode( sprite );
+    }
+
     @Override
     protected boolean activate(boolean state) {
         return true;
@@ -200,11 +231,6 @@ public class Sprite extends Node {
     @Override
     public boolean isType(Type type) {
         return type == Type.Sprite;
-    }
-
-    @Override
-    protected boolean upload() {
-        return false;
     }
 
     public boolean updateTextureRegion(TextureAtlas atlas) {
@@ -313,17 +339,11 @@ public class Sprite extends Node {
     }
 
     @Override
-    public void act(float delta) {
-        if ( !isActive() )
-            return;
-        super.act(delta);
-
-        if ( animation == null )
-            return;
-
-        stateTime += delta;
-        currentRegion = animation.getKeyFrame( stateTime );
-//        updateSpriteBoundingBox();
+    protected void nodeAct(float delta) {
+        if ( animation != null ) {
+            stateTime += delta;
+            currentRegion = animation.getKeyFrame(stateTime);
+        }
     }
 
 
@@ -407,7 +427,7 @@ public class Sprite extends Node {
 
     private void drawBoundingBox( Batch batch, float parentAlpha ) {
 
-        // bounding box will be drawn around top Sprite only
+        // bounding box will be drawn around the Top Sprite only
         if ( getParent() != null ) {
             if ( getParent().getUserObject() == null )
                 return;
@@ -416,31 +436,26 @@ public class Sprite extends Node {
                 return;
         }
 
-
         batch.end();
-        Env.mshr.setProjectionMatrix(batch.getProjectionMatrix());
-        Env.mshr.setTransformMatrix(batch.getTransformMatrix());
+        Env.get().mshr.setProjectionMatrix(batch.getProjectionMatrix());
+        Env.get().mshr.setTransformMatrix(batch.getTransformMatrix());
 
-        Env.mshr.begin(ShapeRenderer.ShapeType.Line);
+        Env.get().mshr.begin(ShapeRenderer.ShapeType.Line);
 
 
         if ( boundingBox != null ) {
-            Env.mshr.setColor(0.7f, 0.7f, 0.7f, 1);
-            Env.mshr.rect(boundingBox.getX(), boundingBox.getY(),
+            Env.get().mshr.setColor(0.7f, 0.7f, 0.7f, 1);
+            Env.get().mshr.rect(boundingBox.getX(), boundingBox.getY(),
                     boundingBox.getWidth(), boundingBox.getHeight());
         }
 
-        Env.mshr.end();
+        Env.get().mshr.end();
         batch.begin();
     }
 
     @Override
-    public void draw( Batch batch, float parentAlpha ) {
-
-        if ( ! isVisible() )
-            return;
-
-        if ( isDrawable() && currentRegion != null ) {
+    protected void nodeDraw(Batch batch, float parentAlpha) {
+        if ( currentRegion != null ) {
 
             batch.setColor(getColor());
 
@@ -448,28 +463,28 @@ public class Sprite extends Node {
             float hH = getHeight() / 2;
 
             batch.draw(currentRegion, getX() - hW, getY() - hH, hW, hH, getWidth(), getHeight(), 1, 1, getRotation());
-
-            if ( Env.debugRender && Env.drawSpriteBBox ) {
-                drawBoundingBox(batch, parentAlpha );
-            }
         }
 
         if (renderableUserObject != null)
             renderableUserObject.render(this, batch);
-
-        super.draw( batch, parentAlpha );
     }
 
-    static final Stack<Actor> actorsTmpStack = new Stack<Actor>();
-    static final Matrix3 mtx = new Matrix3();
-
+    @Override
+    protected void nodeDebugDraw(Batch batch, float parentAlpha) {
+        if ( Env.get().drawSpriteBBox ) {
+            drawBoundingBox(batch, parentAlpha );
+        }
+    }
 
     @Override
     public void dispose() {
         animation = null;
         currentRegion = null;
-        Env.taHandle.removeAtlasStateListener( atlasStateListener );
+        Env.get().taHandle.removeAtlasStateListener( this );
     }
+
+    static final Stack<Actor> actorsTmpStack = new Stack<Actor>();
+    static final Matrix3 mtx = new Matrix3();
 
     public static Vector2 stageToActorLocal(Actor actor, Vector2 stageSpaceCoordinates) {
 
@@ -489,7 +504,6 @@ public class Sprite extends Node {
             mtx.translate(a.getX(), a.getY());
             mtx.rotate(a.getRotation());
         }
-
 
         stageSpaceCoordinates.mul( mtx.inv() );
 

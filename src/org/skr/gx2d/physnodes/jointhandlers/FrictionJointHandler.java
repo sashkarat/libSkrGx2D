@@ -11,7 +11,7 @@ import org.skr.gx2d.physnodes.physdef.JointDefinition;
 /**
  * Created by rat on 19.07.14.
  */
-public class FrictionJointItem extends JointHandler {
+public class FrictionJointHandler extends JointHandler {
     FrictionJoint joint;
 
     @Override

@@ -45,7 +45,7 @@ public class GearJointHandler extends JointHandler {
 
         Joint jA, jB;
 
-        JointHandler jh = (JointHandler) getFirstNode().getNode( jhDef.getJointAId() );
+        JointHandler jh = (JointHandler) firstNode().getNode( jhDef.getJointAId() );
         if ( jh == null ) {
             Gdx.app.error("GearJointHandler.createJointDef", "Error: JointItem A not defined");
             return null;
@@ -56,7 +56,7 @@ public class GearJointHandler extends JointHandler {
             Gdx.app.error("GearJointHandler.createJointDef", "Error: Joint A Type mismatch ");
             return null;
         }
-        jh = (JointHandler) getFirstNode().getNode( jhDef.getJointBId() );
+        jh = (JointHandler) firstNode().getNode( jhDef.getJointBId() );
         if ( jh == null ) {
             Gdx.app.error("GearJointHandler.createJointDef", "Error: JointItem B not defined");
             return null;

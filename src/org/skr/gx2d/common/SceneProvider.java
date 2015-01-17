@@ -4,6 +4,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
 import org.skr.gx2d.scene.Scene;
+import org.skr.gx2d.utils.Utils;
 
 /**
  * Created by rat on 04.01.15.
@@ -17,6 +18,8 @@ public class SceneProvider implements Disposable{
     }
 
     public void setStage(Stage stage) {
+        if ( stage == this.stage )
+            return;
         Scene aS = activeScene;
 
         removeActiveScene();
@@ -26,7 +29,15 @@ public class SceneProvider implements Disposable{
         if ( stage == null )
             return;
 
+        if ( aS != null ) {
+            aS.initialize(stage);
+            aS.constructPhysics();
+            aS.constructGraphics();
+        }
+
         for ( Scene scene : scenes ) {
+            if ( aS == scene )
+                continue;
             scene.initialize(stage);
             scene.constructPhysics();
             scene.constructGraphics();
@@ -39,6 +50,7 @@ public class SceneProvider implements Disposable{
     public Scene addScene( Scene scene) {
         scenes.add( scene );
         if ( stage != null ) {
+            Utils.printMsg("SceneProvider.addScene", "stage != null");
             scene.initialize(stage);
             scene.constructPhysics();
             scene.constructGraphics();
@@ -73,9 +85,19 @@ public class SceneProvider implements Disposable{
 
     public void setActiveScene( Scene scene ) {
         removeActiveScene();
+
+        activeScene = scene;
+
         if ( stage != null)
             stage.addActor( scene );
-        activeScene = scene;
+        else
+            return;
+
+        if ( !activeScene.isPhysicsConstructed() )
+            activeScene.constructPhysics();
+
+        if ( !activeScene.isGraphicsConstructed() )
+            activeScene.constructGraphics();
     }
 
     public void removeActiveScene() {

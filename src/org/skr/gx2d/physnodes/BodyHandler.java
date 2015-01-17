@@ -8,32 +8,38 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.Fixture;
+import com.badlogic.gdx.physics.box2d.World;
 import org.skr.gx2d.common.Env;
-import org.skr.gx2d.node.annotation.NodeField;
+import org.skr.gx2d.node.Node;
+import org.skr.gx2d.node.annotation.NodeAddMethodAnnotation;
+import org.skr.gx2d.node.annotation.Nfa;
 import org.skr.gx2d.physnodes.physdef.BodyDefinition;
-import org.skr.gx2d.physnodes.physdef.PhysDefinition;
-import org.skr.gx2d.physnodes.physdef.PhysNode;
 import org.skr.gx2d.sprite.Sprite;
 import org.skr.gx2d.utils.BBox;
 import org.skr.gx2d.utils.RectangleExt;
+import org.skr.gx2d.utils.Utils;
 
 /**
  * Created by rat on 06.01.15.
  */
-public class BodyHandler extends Sprite implements PhysNode {
+public class BodyHandler extends Sprite {
 
-    BodyDefinition bhDef;
     Body body = null;
     RectangleExt boundingBox = new RectangleExt();
 
-    @NodeField
-    boolean overrideMassData = false;
+    @Nfa
+    @NodeAddMethodAnnotation( name = "addFixtureSet")
+    FixtureSet fixtureSet;
 
-    @NodeField
+    @Nfa
+    BodyDefinition bhDef;
+
+    @Nfa
     float absorbedImpulse = 0;
 
     public BodyHandler() {
         super();
+        bhDef = new BodyDefinition();
     }
 
     public Body getBody() {
@@ -43,14 +49,6 @@ public class BodyHandler extends Sprite implements PhysNode {
     public void setBody(Body body) {
         this.body = body;
         body.setUserData( this );
-    }
-
-    public boolean isOverrideMassData() {
-        return overrideMassData;
-    }
-
-    public void setOverrideMassData(boolean overrideMassData) {
-        this.overrideMassData = overrideMassData;
     }
 
     public BodyHandler getBodyHandler( long id ) {
@@ -73,16 +71,37 @@ public class BodyHandler extends Sprite implements PhysNode {
         return type == Type.BodyHandler || type == Type.Sprite;
     }
 
-    @Override
-    protected boolean upload() {
-        super.upload();
-        return false;
+    public float getAbsorbedImpulse() {
+        return absorbedImpulse;
+    }
+
+    public void setAbsorbedImpulse(float absorbedImpulse) {
+        this.absorbedImpulse = absorbedImpulse;
+    }
+
+    public FixtureSet getFixtureSet() {
+        return fixtureSet;
+    }
+
+    public FixtureSet setFixtureSet(FixtureSet fixtureSet) {
+        this.fixtureSet = fixtureSet;
+        this.fixtureSet.setTopNode( this );
+        checkOnSceneState(fixtureSet);
+        return this.fixtureSet;
+    }
+
+    public FixtureSet addFixtureSet( FixtureSet fs ) {
+        if ( fixtureSet == null )
+            return setFixtureSet( fs );
+        fixtureSet.appendNode( fs );
+        checkOnSceneState( fs );
+        return fixtureSet;
     }
 
     private void updateTransform() {
         if ( body == null )
             return;
-        Vector2 pos = Env.world.physToView( body.getPosition() );
+        Vector2 pos = Env.get().world.physToView( body.getPosition() );
         float angle = body.getAngle();
         setPosition( pos.x, pos.y );
         setRotation(MathUtils.radiansToDegrees * angle );
@@ -120,42 +139,35 @@ public class BodyHandler extends Sprite implements PhysNode {
         }
     }
 
-
     @Override
-    public void act(float delta) {
-        if ( ! isActive() )
-            return;
+    protected void nodeAct(float delta) {
         updateTransform();
-        super.act(delta);
+        super.nodeAct( delta );
     }
 
     private void drawBoundingBox(Batch batch, float parentAlpha ) {
         updateBodyBoundingBox();
 
-        Env.mshr.setProjectionMatrix(batch.getProjectionMatrix());
-        Env.mshr.setTransformMatrix( batch.getTransformMatrix() );
+        Env.get().mshr.setProjectionMatrix(batch.getProjectionMatrix());
+        Env.get().mshr.setTransformMatrix( batch.getTransformMatrix() );
 
         batch.end();
 
-        Env.mshr.setColor( 1, 1, 1, 1);
-        Env.mshr.begin(ShapeRenderer.ShapeType.Line);
+        Env.get().mshr.setColor( 1, 1, 1, 1);
+        Env.get().mshr.begin(ShapeRenderer.ShapeType.Line);
 
-        Env.mshr.rect( boundingBox.getLeft(), boundingBox.getBottom(),
+        Env.get().mshr.rect( boundingBox.getLeft(), boundingBox.getBottom(),
                 boundingBox.getWidth(), boundingBox.getHeight() );
 
-        Env.mshr.end();
+        Env.get().mshr.end();
 
         batch.begin();
     }
 
     @Override
-    public void draw(Batch batch, float parentAlpha) {
-        super.draw(batch, parentAlpha);
-
-        if ( ! isVisible() || ! isDrawable() )
-            return;
-
-        if (Env.drawBodyHandlerBBox)
+    protected void nodeDebugDraw(Batch batch, float parentAlpha) {
+        super.nodeDebugDraw(batch, parentAlpha);
+        if (Env.get().drawBodyHandlerBBox)
             drawBoundingBox( batch, parentAlpha );
     }
 
@@ -163,7 +175,6 @@ public class BodyHandler extends Sprite implements PhysNode {
 
     public static Vector2 stageToBodyLocal(BodyHandler bodyHandler, Vector2 coord) {
         mtx.idt();
-
         mtx.translate(bodyHandler.getX(), bodyHandler.getY());
         mtx.rotate( bodyHandler.getRotation() );
 
@@ -192,34 +203,59 @@ public class BodyHandler extends Sprite implements PhysNode {
         return bd;
     }
 
+    protected void createBody( BodyDefinition bhDef ) {
+        Body body = Env.get().world.box2dWorld().createBody(bhDef.getBodyDef());
+        if ( body == null )
+            return;
+        setBody(body);
+        body.setUserData( this );
+    }
+
     @Override
     public void dispose() {
         super.dispose();
     }
 
     protected void updateBodyDefinition() {
+        bhDef = null;
+        if ( body == null )
+            return;
         bhDef = new BodyDefinition();
         BodyDef bodyDef = getBodyDefFromBody( body );
         bhDef.setBodyDef(bodyDef);
-        bhDef.setMassData(body.getMassData());
     }
 
     @Override
-    public PhysDefinition getPhysDef() {
-        bhDef = null;
+    public void preExport() {
+        super.preExport();
         updateBodyDefinition();
-        return bhDef;
     }
 
     @Override
-    public void setPhysDef(PhysDefinition phd) {
+    public void postExport() {
+        super.postExport();
         bhDef = null;
-        if ( phd instanceof BodyDefinition)
-            bhDef = (BodyDefinition) phd;
     }
 
     @Override
-    public void constructGraphics() {
+    public void constructPhysics() {
+        if ( bhDef == null )
+            return;
+        createBody( bhDef );
+        if ( fixtureSet == null )
+            return;
+        for ( Node node : fixtureSet )
+            node.constructPhysics();
+    }
 
+    @Override
+    public void destroyPhysics() {
+
+        if ( body != null ) {
+            World w = body.getWorld();
+            w.destroyBody(body);
+            body = null;
+        }
+        super.destroyPhysics();
     }
 }

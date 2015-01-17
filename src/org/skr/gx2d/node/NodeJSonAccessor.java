@@ -36,14 +36,19 @@ public class NodeJSonAccessor implements Json.Serializable {
     protected void writeNodeChain( Node node, Json json ) {
         while ( node != null ) {
             writeNode( node, json);
-            node = node.getNextNode();
+            node = node.nextNode();
         }
     }
 
     protected void writeNode( Node node, Json json ) {
 //        Utils.printMsg("NodeJSonAccessor.writeNode", ": " + node.getClass() );
+        node.preExport();
         Class<?> nodeClass = node.getClass();
         json.writeObjectStart( nodeClass.getName() );
+        if ( nodeClass.isAnnotationPresent( NodeFactoryAnnotation.class) ) {
+            if ( !writeNodeFactoryParameters(node, json))
+                return;
+        }
         Stack< Class<?> > hierarchy = new Stack<Class<?>>();
         Class<?> cl = nodeClass;
         while ( cl != Node.class ) {
@@ -55,15 +60,34 @@ public class NodeJSonAccessor implements Json.Serializable {
         while ( !hierarchy.isEmpty() )
             writeAsClass(node, hierarchy.pop(), json);
         json.writeObjectEnd();
+        node.postExport();
+    }
+
+    protected boolean writeNodeFactoryParameters(Node node, Json json ) {
+        try {
+            Class<?> nodeClass = node.getClass();
+            NodeFactoryAnnotation nfa = nodeClass.getAnnotation( NodeFactoryAnnotation.class );
+            NodeDataAccessorAnnotation nda = nfa.parameter();
+            Method readMethod = nodeClass.getMethod(nda.read());
+            Object param = readMethod.invoke(node);
+            json.writeValue("factoryParameter", param, nda.type() );
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     protected void writeAsClass(Node node, Class<?> nodeClass, Json json) {
 
-        if ( nodeClass.isAnnotationPresent(NodeDataMap.class))
+        if ( nodeClass.isAnnotationPresent(NodeDataMapAnnotation.class))
             writeNodeDataMap( node, nodeClass, json);
 
         for (Field field : nodeClass.getDeclaredFields() ) {
-            if ( ! field.isAnnotationPresent(NodeField.class) )
+            if ( ! field.isAnnotationPresent(Nfa.class) )
                 continue;
 
             try {
@@ -90,9 +114,9 @@ public class NodeJSonAccessor implements Json.Serializable {
     }
 
     protected void writeNodeDataMap(Node node, Class<?> nodeClass, Json json ) {
-        NodeDataMap annMap = nodeClass.getAnnotation(NodeDataMap.class);
-        for (NodeData annData : annMap.data() ) {
-            NodeDataAccessor annAcc = annData.accessor();
+        NodeDataMapAnnotation annMap = nodeClass.getAnnotation(NodeDataMapAnnotation.class);
+        for (NodeDataAnnotation annData : annMap.data() ) {
+            NodeDataAccessorAnnotation annAcc = annData.accessor();
             try {
                 Method read = nodeClass.getMethod(annAcc.read());
                 if ( !read.isAccessible() )
@@ -135,18 +159,10 @@ public class NodeJSonAccessor implements Json.Serializable {
         Node node = null;
         try {
             nodeClass = Class.forName(jv.name() );
-            node = (Node) nodeClass.getConstructor().newInstance();
+            node = createNode( nodeClass, json, jv );
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
             return null;
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
-            e.printStackTrace();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
         }
         if ( node == null )
             return null;
@@ -163,17 +179,43 @@ public class NodeJSonAccessor implements Json.Serializable {
 
         while ( !hierarchy.isEmpty() )
             readAsClass(node, hierarchy.pop(), json, jv);
+        return node;
+    }
 
+    public Node createNode( Class<?> nodeClass, Json json, JsonValue jv ) {
+        Node node = null;
+        try {
+            if ( ! nodeClass.isAnnotationPresent( NodeFactoryAnnotation.class) ) {
+                node = (Node) nodeClass.getConstructor().newInstance();
+                return node;
+            }
+
+            NodeFactoryAnnotation nfa = nodeClass.getAnnotation( NodeFactoryAnnotation.class );
+            NodeDataAccessorAnnotation nda = nfa.parameter();
+            Method createMethod = nfa.factory().getMethod(nfa.createMethodName(), nda.type());
+            JsonValue jvParam = jv.get("factoryParameter");
+            Object parameter = json.readValue( nda.type(), jvParam );
+            node = (Node) createMethod.invoke( null, parameter );
+
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        }
         return node;
     }
 
     public void readAsClass(Node node, Class<?> nodeClass, Json json, JsonValue jv) {
 
-        if ( nodeClass.isAnnotationPresent( NodeDataMap.class) )
+        if ( nodeClass.isAnnotationPresent( NodeDataMapAnnotation.class) )
             readNodeDataMap( node, nodeClass, json, jv );
 
         for (Field field : nodeClass.getDeclaredFields() ) {
-            if ( ! field.isAnnotationPresent(NodeField.class) )
+            if ( ! field.isAnnotationPresent(Nfa.class) )
                 continue;
             if (  ! field.isAccessible() )
                 field.setAccessible( true );
@@ -205,14 +247,15 @@ public class NodeJSonAccessor implements Json.Serializable {
     protected void readSubNode( Node topNode, Class<?> topNodeCl, Field field, Json json, JsonValue jv ) {
         String methodStr;
 
-        if ( field.isAnnotationPresent(NodeAddMethod.class) ) {
-            NodeAddMethod annAdd = field.getAnnotation( NodeAddMethod.class );
+        if ( field.isAnnotationPresent(NodeAddMethodAnnotation.class) ) {
+            NodeAddMethodAnnotation annAdd = field.getAnnotation( NodeAddMethodAnnotation.class );
             methodStr = annAdd.name();
         } else {
             methodStr = "add" + Character.toUpperCase(field.getName().charAt(0)) + field.getName().substring(1);
         }
-        Utils.printMsg("readSubNode.", "Method name: " + methodStr );
         Node subNode = readNodeChain( json, jv );
+        if ( subNode == null )
+            return;
         subNode.setTopNode( topNode );
         try {
             Method method = topNodeCl.getMethod(methodStr, field.getType() );
@@ -228,9 +271,9 @@ public class NodeJSonAccessor implements Json.Serializable {
     }
 
     protected void readNodeDataMap(Node node, Class<?> nodeClass, Json json, JsonValue jv ) {
-        NodeDataMap annMap = nodeClass.getAnnotation(NodeDataMap.class);
-        for (NodeData annData : annMap.data() ) {
-            NodeDataAccessor annAcc = annData.accessor();
+        NodeDataMapAnnotation annMap = nodeClass.getAnnotation(NodeDataMapAnnotation.class);
+        for (NodeDataAnnotation annData : annMap.data() ) {
+            NodeDataAccessorAnnotation annAcc = annData.accessor();
             try {
                 JsonValue djv = jv.get( annData.name() );
                 if ( djv == null )
@@ -251,9 +294,4 @@ public class NodeJSonAccessor implements Json.Serializable {
             }
         }
     }
-
-    protected void readSubNodeMap(Node node, Json json, JsonValue jv ) {
-        Object val = readNodeChain(json, jv);
-    }
-
 }

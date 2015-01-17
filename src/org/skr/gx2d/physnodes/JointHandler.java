@@ -1,21 +1,40 @@
 package org.skr.gx2d.physnodes;
 
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.Joint;
 import com.badlogic.gdx.physics.box2d.JointDef;
-import org.skr.gx2d.node.Node;
+import com.badlogic.gdx.physics.box2d.World;
+import org.skr.gx2d.common.Env;
+import org.skr.gx2d.node.SceneItem;
+import org.skr.gx2d.node.annotation.Nfa;
+import org.skr.gx2d.node.annotation.NodeDataAccessorAnnotation;
+import org.skr.gx2d.node.annotation.NodeFactoryAnnotation;
 import org.skr.gx2d.physnodes.physdef.JointDefinition;
-import org.skr.gx2d.physnodes.physdef.PhysDefinition;
-import org.skr.gx2d.physnodes.physdef.PhysNode;
 
 /**
  * Created by rat on 06.01.15.
  */
-public abstract class JointHandler extends Node implements PhysNode {
 
+@NodeFactoryAnnotation(
+        factory = JointHandlerFactory.class,
+        createMethodName = "create",
+        parameter = @NodeDataAccessorAnnotation(
+                    read = "getType",
+                    type = JointDef.JointType.class
+        )
+)
+public abstract class JointHandler extends SceneItem {
+
+    @Nfa
     JointDefinition jhDef = null;
+
     Joint joint;
+
+    protected JointHandler() {
+
+    }
 
     @Override
     protected boolean activate(boolean state) {
@@ -32,11 +51,6 @@ public abstract class JointHandler extends Node implements PhysNode {
         return type == Type.JointHandler;
     }
 
-    @Override
-    protected boolean upload() {
-        return false;
-    }
-
     public final Joint getJoint() {
         return joint;
     }
@@ -45,7 +59,6 @@ public abstract class JointHandler extends Node implements PhysNode {
         this.joint = joint;
         onJointSet();
     }
-
 
     public final long getBodyAId() {
         BodyHandler bi = getBodyHandlerA();
@@ -290,9 +303,8 @@ public abstract class JointHandler extends Node implements PhysNode {
 
     public void updateJointDefinition() {
 
-        if ( getJoint() == null ) {
+        if ( getJoint() == null )
             return;
-        }
 
         jhDef = new JointDefinition();
 
@@ -307,8 +319,37 @@ public abstract class JointHandler extends Node implements PhysNode {
         updateJointDefinition(jhDef);
     }
 
+    protected void createJoint( JointDefinition jhDef ) {
+        JointDef jd = createJointDef( jhDef );
+
+        if ( jd == null )
+            return;
+
+        jd.collideConnected = jhDef.isCollideConnected();
+
+        Joint joint;
+        joint = Env.get().world.box2dWorld().createJoint( jd );
+
+        if ( joint == null )
+            return;
+
+        setJoint(joint);
+        joint.setUserData( this );
+    }
+
     public PhysSet getPhysSet() {
-        return (PhysSet) getTopNode();
+        return (PhysSet) topNode();
+    }
+
+
+    @Override
+    protected void nodeAct(float delta) {
+
+    }
+
+    @Override
+    protected void nodeDraw(Batch batch, float parentAlpha) {
+
     }
 
     @Override
@@ -317,21 +358,40 @@ public abstract class JointHandler extends Node implements PhysNode {
     }
 
     @Override
-    public PhysDefinition getPhysDef() {
-        jhDef = null;
+    public void preExport() {
         updateJointDefinition();
-        return jhDef;
     }
 
     @Override
-    public void setPhysDef(PhysDefinition phd) {
+    public void postExport() {
         jhDef = null;
-        if ( phd instanceof JointDefinition )
-            jhDef = (JointDefinition) phd;
+    }
+
+    @Override
+    public void constructGraphics() {
+
     }
 
     @Override
     public void constructPhysics() {
+        if ( jhDef == null )
+            return;
+        createJoint( jhDef );
+    }
 
+    @Override
+    public void destroyGraphics() {
+
+    }
+
+    @Override
+    public void destroyPhysics() {
+        if ( joint == null )
+            return;
+        if ( joint.getBodyA() == null )
+            return;
+        World w = joint.getBodyA().getWorld();
+        w.destroyJoint( joint );
+        joint = null;
     }
 }

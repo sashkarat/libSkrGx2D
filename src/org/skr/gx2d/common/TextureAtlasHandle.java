@@ -12,8 +12,8 @@ import org.skr.gx2d.utils.Utils;
  */
 public class TextureAtlasHandle implements Disposable {
     public interface AtlasStateListener {
-        public void toBeDisposed( TextureAtlas atlas );
-        public void loaded( TextureAtlas atlas );
+        public void atlasDisposing(TextureAtlas atlas);
+        public void atlasLoaded(TextureAtlas atlas);
     }
 
     TextureAtlas atlas;
@@ -26,7 +26,7 @@ public class TextureAtlasHandle implements Disposable {
         if ( atlas == null )
             return;
         for( AtlasStateListener l : atlasStateListeners )
-            l.toBeDisposed( atlas );
+            l.atlasDisposing(atlas);
         atlas.dispose();
         atlas = null;
     }
@@ -81,7 +81,7 @@ public class TextureAtlasHandle implements Disposable {
         this.textureRegionNames.sort();
 
         for ( AtlasStateListener l : atlasStateListeners )
-            l.loaded( atlas );
+            l.atlasLoaded(atlas);
 
 //        Utils.printMsg("TextureAtlasHandle.uploadAtlas", "successfully done. Available regions: ");
 //        for (String name : textureRegionNames )

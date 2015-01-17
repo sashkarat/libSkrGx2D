@@ -13,7 +13,7 @@ import org.skr.gx2d.physnodes.physdef.JointDefinition;
 /**
  * Created by rat on 13.07.14.
  */
-public class PulleyJointItem extends JointHandler {
+public class PulleyJointHandler extends JointHandler {
 
     PulleyJoint joint;
 

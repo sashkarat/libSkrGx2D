@@ -12,7 +12,7 @@ import org.skr.gx2d.physnodes.physdef.JointDefinition;
 /**
  * Created by rat on 19.07.14.
  */
-public class RopeJointItem extends JointHandler {
+public class RopeJointHandler extends JointHandler {
 
     RopeJoint joint;
 

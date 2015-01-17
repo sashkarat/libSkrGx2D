@@ -7,7 +7,7 @@ import org.skr.gx2d.physnodes.JointHandler;
 /**
  * Created by rat on 07.01.15.
  */
-public class JointDefinition extends PhysDefinition {
+public class JointDefinition {
 
     JointDef.JointType type = JointDef.JointType.Unknown;
     long bodyAId = -1;

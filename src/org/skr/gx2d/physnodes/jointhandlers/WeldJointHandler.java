@@ -12,7 +12,7 @@ import org.skr.gx2d.physnodes.physdef.JointDefinition;
 /**
  * Created by rat on 20.07.14.
  */
-public class WeldJointItem extends JointHandler {
+public class WeldJointHandler extends JointHandler {
 
     WeldJoint joint;
 

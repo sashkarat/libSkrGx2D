@@ -1,18 +1,14 @@
 package org.skr.gx2d.physnodes;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
 import com.badlogic.gdx.utils.Array;
 import org.skr.gx2d.common.Env;
 import org.skr.gx2d.node.Node;
-import org.skr.gx2d.node.annotation.NodeData;
-import org.skr.gx2d.node.annotation.NodeDataAccessor;
-import org.skr.gx2d.node.annotation.NodeDataMap;
-import org.skr.gx2d.node.annotation.NodeField;
+import org.skr.gx2d.node.SceneItem;
 import org.skr.gx2d.physnodes.physdef.FixtureSetDefinition;
-import org.skr.gx2d.physnodes.physdef.PhysDefinition;
-import org.skr.gx2d.physnodes.physdef.PhysNode;
 import org.skr.gx2d.physnodes.physdef.ShapeDefinition;
 import org.skr.gx2d.utils.BBox;
 import org.skr.gx2d.utils.RectangleExt;
@@ -20,17 +16,7 @@ import org.skr.gx2d.utils.RectangleExt;
 /**
  * Created by rat on 06.01.15.
  */
-@NodeDataMap (
-        data = {
-                @NodeData(name = "PhysDef",
-                        accessor = @NodeDataAccessor(
-                                read = "getPhysDef",
-                                write = "setPhysDef",
-                                type = PhysDefinition.class
-                        ))
-        }
-)
-public class FixtureSet extends Node implements PhysNode {
+public class FixtureSet extends SceneItem {
 
     FixtureSetDefinition fsDef = null;
 
@@ -59,17 +45,23 @@ public class FixtureSet extends Node implements PhysNode {
     }
 
     @Override
-    protected boolean upload() {
-        return false;
+    public Node setTopNode(Node topNode) {
+        super.setTopNode(topNode);
+        bodyHandler = null;
+        if ( topNode() == null || !topNode().isType( Type.BodyHandler))
+            return this;
+        bodyHandler = (BodyHandler) topNode();
+        return this;
     }
 
     @Override
-    public void setTopNode(Node topNode) {
-        super.setTopNode(topNode);
-        bodyHandler = null;
-        if ( getTopNode() == null || !getTopNode().isType( Type.BodyHandler))
-            return;
-        bodyHandler = (BodyHandler) getTopNode();
+    protected void nodeAct(float delta) {
+
+    }
+
+    @Override
+    protected void nodeDraw(Batch batch, float parentAlpha) {
+
     }
 
     public Shape.Type getShapeType() {
@@ -116,7 +108,7 @@ public class FixtureSet extends Node implements PhysNode {
     }
 
     public Body getBody() {
-        BodyHandler bh = (BodyHandler) getTopNode();
+        BodyHandler bh = (BodyHandler) topNode();
         return bh.getBody();
     }
 
@@ -189,6 +181,15 @@ public class FixtureSet extends Node implements PhysNode {
         }
         return shd;
     }
+
+    public void createFixtures( FixtureSetDefinition fsDef ) {
+        setDensity( fsDef.getDensity() );
+        setRestitution( fsDef.getRestitution() );
+        setFriction( fsDef.getFriction() );
+        setShapeType( fsDef.getShapeType() );
+        createFixtures( fsDef.getShapeDefArray() );
+    }
+
 
     public void createFixtures( Array< ShapeDefinition> shapeDefArray ) {
 
@@ -321,8 +322,8 @@ public class FixtureSet extends Node implements PhysNode {
     public static void getBoundingBoxForCircleShape(RectangleExt bbox, CircleShape circleShape ) {
         Vector2 pos = circleShape.getPosition();
         float r = circleShape.getRadius();
-        Env.world.toView(pos);
-        r = Env.world.toView( r );
+        Env.get().world.toView(pos);
+        r = Env.get().world.toView( r );
         bbox.set( pos.x - r, pos.y - r, r + r, r + r );
     }
 
@@ -333,8 +334,8 @@ public class FixtureSet extends Node implements PhysNode {
         edgeShape.getVertex1( vA );
         edgeShape.getVertex2( vB );
 
-        Env.world.toView(vA);
-        Env.world.toView(vB);
+        Env.get().world.toView(vA);
+        Env.get().world.toView(vB);
 
         bbox.set( BBox.getBBox(vA, vB) );
     }
@@ -344,7 +345,7 @@ public class FixtureSet extends Node implements PhysNode {
         int c = chainShape.getVertexCount();
         for ( int i = 0; i < c; i++) {
             chainShape.getVertex( i, vA);
-            Env.world.toView(vA);
+            Env.get().world.toView(vA);
             BBox.bBoxProcessingAddPoint( vA );
         }
         bbox.set( BBox.bBoxProcessingEnd() );
@@ -355,7 +356,7 @@ public class FixtureSet extends Node implements PhysNode {
         int c = polygonShape.getVertexCount();
         for ( int i = 0; i < c; i++) {
             polygonShape.getVertex(i, vA);
-            Env.world.toView(vA);
+            Env.get().world.toView(vA);
             BBox.bBoxProcessingAddPoint( vA );
         }
         bbox.set(BBox.bBoxProcessingEnd());
@@ -382,20 +383,35 @@ public class FixtureSet extends Node implements PhysNode {
     }
 
     @Override
-    public PhysDefinition getPhysDef() {
+    public void preExport() {
         updateFsDef();
-        return fsDef;
     }
 
     @Override
-    public void setPhysDef(PhysDefinition phd) {
+    public void postExport() {
         fsDef = null;
-        if ( phd instanceof FixtureSetDefinition )
-            fsDef = (FixtureSetDefinition) phd;
+    }
+
+    @Override
+    public void constructGraphics() {
+
     }
 
     @Override
     public void constructPhysics() {
+        if ( fsDef == null )
+            return;
+        createFixtures( fsDef );
+        fsDef = null;
+    }
+
+    @Override
+    public void destroyGraphics() {
+
+    }
+
+    @Override
+    public void destroyPhysics() {
 
     }
 }

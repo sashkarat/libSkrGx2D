@@ -6,7 +6,7 @@ import com.badlogic.gdx.utils.Array;
 /**
  * Created by rat on 07.01.15.
  */
-public class FixtureSetDefinition extends PhysDefinition {
+public class FixtureSetDefinition {
     Shape.Type shapeType = Shape.Type.Polygon;
     public float friction = 0.2f;
     public float restitution = 0;
