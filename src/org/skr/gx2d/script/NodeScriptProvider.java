@@ -21,6 +21,10 @@ public class NodeScriptProvider {
         return script;
     }
 
+    public Array<NodeScript> getScripts() {
+        return scripts;
+    }
+
     public boolean removeScript( NodeScript script ) {
         return scripts.removeValue(script, true);
     }

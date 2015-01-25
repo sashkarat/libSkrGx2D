@@ -207,19 +207,27 @@ public abstract class Node extends Group implements NodeWorkFlow, Disposable, It
     }
 
     public Node getNode(long id ) {
+        return firstNode().getNodeById(id);
+    }
+
+    protected Node getNodeById( long id ) {
         if ( this.id == id )
             return this;
         if ( nextNode == null )
             return null;
-        return nextNode.getNode( id );
+        return nextNode.getNodeById(id);
     }
 
     public Node getNode( Type type ) {
+        return firstNode().getNodeByType( type );
+    }
+
+    protected Node getNodeByType( Type type ) {
         if ( this.isType( type ) )
             return this;
         if ( nextNode == null )
             return null;
-        return nextNode.getNode(type);
+        return nextNode.getNodeByType( type );
     }
 
     @Override

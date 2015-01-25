@@ -23,7 +23,7 @@ public abstract class Gx2DApplication extends Game {
         Gx2DApplication.instance = this;
     }
 
-    public static Gx2DApplication get() {
+    public static Gx2DApplication inst() {
         return Gx2DApplication.instance;
     }
 
@@ -47,14 +47,24 @@ public abstract class Gx2DApplication extends Game {
     protected  abstract void onCreate();
     protected abstract void onDispose();
 
+    public Env addNewEnv( Config cfg ) {
+        Env env = Env.addNewEnv();
+        initEnvironment( env, cfg );
+        return env;
+    }
+
+    protected void initEnvironment( Env env, Config cfg ) {
+        env.world.createBox2DWorld( cfg.physWorldScale );
+        env.mshr = new ModShapeRenderer();
+        if ( ! cfg.internalTextureAtlasPath.isEmpty() ) {
+            env.taHandle.setInternalTextureAtlasPath(cfg.internalTextureAtlasPath);
+            env.taHandle.uploadAtlas();
+        }
+    }
+
     @Override
     public void create() {
-        Env.get().world.createBox2DWorld( cfg.physWorldScale );
-        Env.get().mshr = new ModShapeRenderer();
-        if ( ! cfg.internalTextureAtlasPath.isEmpty() ) {
-            Env.get().taHandle.setInternalTextureAtlasPath(cfg.internalTextureAtlasPath);
-            Env.get().taHandle.uploadAtlas();
-        }
+        initEnvironment( Env.get(), cfg );
         onCreate();
     }
 

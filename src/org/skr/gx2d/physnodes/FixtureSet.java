@@ -108,8 +108,11 @@ public class FixtureSet extends SceneItem {
     }
 
     public Body getBody() {
-        BodyHandler bh = (BodyHandler) topNode();
-        return bh.getBody();
+        return getBodyHandler().getBody();
+    }
+
+    public BodyHandler getBodyHandler() {
+        return (BodyHandler) topNode();
     }
 
     public void removeAllFixtures() {
@@ -380,6 +383,13 @@ public class FixtureSet extends SceneItem {
             ShapeDefinition shd = getShapeDefinition(fixtures.get(i));
             fsDef.getShapeDefArray().add( shd );
         }
+    }
+
+    public FixtureSetDefinition getFsDef() {
+        updateFsDef();
+        FixtureSetDefinition ret = fsDef;
+        fsDef = null;
+        return ret;
     }
 
     @Override

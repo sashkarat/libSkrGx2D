@@ -36,6 +36,31 @@ public abstract class JointHandler extends SceneItem {
 
     }
 
+    public JointHandler getJointHandler( long id ) {
+        return (JointHandler) getNode( id );
+    }
+
+    public JointHandler getJointHandler( Joint joint ) {
+        return ((JointHandler)firstNode()).getJointHandlerByJoint( joint );
+    }
+
+    protected JointHandler getJointHandlerByJoint( Joint joint ) {
+        if ( this.joint == joint)
+            return this;
+        if ( nextNode() == null )
+            return null;
+        return ((JointHandler) nextNode()).getJointHandlerByJoint( joint );
+    }
+
+    public JointDef.JointType getJointType() {
+        if ( joint != null )
+            return joint.getType();
+        if ( jhDef != null )
+            return jhDef.getType();
+        return JointDef.JointType.Unknown;
+    }
+
+
     @Override
     protected boolean activate(boolean state) {
         return false;
@@ -317,6 +342,10 @@ public abstract class JointHandler extends SceneItem {
         jhDef.setBodyBId( getBodyBId() );
 
         updateJointDefinition(jhDef);
+    }
+
+    public JointDefinition getJhDef() {
+        return jhDef;
     }
 
     protected void createJoint( JointDefinition jhDef ) {

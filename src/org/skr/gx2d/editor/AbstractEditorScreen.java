@@ -12,13 +12,15 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import org.skr.gx2d.common.Env;
+import org.skr.gx2d.common.Gx2DApplication;
 import org.skr.gx2d.utils.ModShapeRenderer;
 
 /**
  * Created by rat on 13.07.14.
  */
-public abstract class BaseScreen implements Screen, InputProcessor {
+public abstract class AbstractEditorScreen implements Screen, InputProcessor {
 
+    protected Env  env;
 
     private Stage stage;
     private OrthographicCamera camera;
@@ -33,7 +35,14 @@ public abstract class BaseScreen implements Screen, InputProcessor {
     private boolean displayGridText = true;
     private boolean displayGridFirst = true;
 
-    public BaseScreen() {
+    public AbstractEditorScreen() {
+
+    }
+
+    public void create() {
+
+        env = Gx2DApplication.inst().addNewEnv( Gx2DApplication.inst().getCfg() );
+
         ScreenViewport vp = new ScreenViewport();
         stage = new Stage( vp );
         camera = (OrthographicCamera) stage.getCamera();
@@ -42,6 +51,10 @@ public abstract class BaseScreen implements Screen, InputProcessor {
         shapeRenderer = new ModShapeRenderer();
         font = new BitmapFont();
         fontBatch = new SpriteBatch();
+    }
+
+    public Env getEnv() {
+        return env;
     }
 
     public Stage getStage() {
@@ -420,6 +433,7 @@ public abstract class BaseScreen implements Screen, InputProcessor {
 
     @Override
     public void show() {
+        Env.setActiveEnv( env );
         Env.get().sceneProvider.setStage( stage );
     }
 
@@ -428,18 +442,4 @@ public abstract class BaseScreen implements Screen, InputProcessor {
         Env.get().sceneProvider.setStage( null );
     }
 
-    @Override
-    public void pause() {
-
-    }
-
-    @Override
-    public void resume() {
-
-    }
-
-    @Override
-    public void dispose() {
-
-    }
 }

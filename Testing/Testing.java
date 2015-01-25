@@ -1,22 +1,17 @@
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
-import com.badlogic.gdx.graphics.g2d.Animation;
-import com.badlogic.gdx.physics.box2d.JointDef;
 import org.skr.gx2d.common.Env;
 import org.skr.gx2d.common.Gx2DApplication;
-import org.skr.gx2d.editor.BaseScreen;
+import org.skr.gx2d.editor.AbstractEditorScreen;
 import org.skr.gx2d.model.Model;
 import org.skr.gx2d.node.Node;
 import org.skr.gx2d.node.NodeFactory;
 import org.skr.gx2d.physnodes.BodyHandler;
-import org.skr.gx2d.physnodes.JointHandlerFactory;
-import org.skr.gx2d.physnodes.JointHandler;
 import org.skr.gx2d.physnodes.PhysSet;
 import org.skr.gx2d.scene.ModelHandler;
 import org.skr.gx2d.scene.Scene;
 import org.skr.gx2d.scene.SceneWorkFlow;
-import org.skr.gx2d.sprite.Sprite;
 import org.skr.gx2d.utils.Utils;
 
 /**
@@ -27,7 +22,7 @@ public class Testing {
     static Scene testScene = new Scene();
     static Model testModel = new Model();
 
-    static class TestScreen extends BaseScreen implements SceneWorkFlow.SceneStateListener {
+    static class TestScreen extends AbstractEditorScreen implements SceneWorkFlow.SceneStateListener {
 
         public TestScreen() {
             testScene.addSceneStateListener( this );
@@ -37,6 +32,21 @@ public class Testing {
         public void show() {
             Env.get().sceneProvider.setActiveScene( Env.get().sceneProvider.addScene( testScene) );
             super.show();
+        }
+
+        @Override
+        public void pause() {
+
+        }
+
+        @Override
+        public void resume() {
+
+        }
+
+        @Override
+        public void dispose() {
+
         }
 
         @Override

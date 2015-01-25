@@ -1,6 +1,7 @@
 package org.skr.gx2d.physnodes;
 
 import com.badlogic.gdx.graphics.g2d.Batch;
+import org.skr.gx2d.model.Model;
 import org.skr.gx2d.node.Node;
 import org.skr.gx2d.node.SceneItem;
 import org.skr.gx2d.node.annotation.NodeAddMethodAnnotation;
@@ -19,8 +20,19 @@ public class PhysSet extends SceneItem {
     @NodeAddMethodAnnotation( name = "addJointHandler")
     JointHandler jointHandler;
 
+
+    public Model getModel() {
+        return (Model) topNode();
+    }
+
     public BodyHandler getBodyHandler() {
         return bodyHandler;
+    }
+
+    public BodyHandler getBodyHandler( long id ) {
+        if ( bodyHandler == null )
+            return null;
+        return bodyHandler.getBodyHandler( id );
     }
 
     public BodyHandler setBodyHandler(BodyHandler bodyHandler) {
@@ -32,6 +44,12 @@ public class PhysSet extends SceneItem {
 
     public JointHandler getJointHandler() {
         return jointHandler;
+    }
+
+    public JointHandler getJointHandler( long id ) {
+        if ( jointHandler == null )
+            return null;
+        return jointHandler.getJointHandler( id );
     }
 
     public JointHandler setJointHandler(JointHandler jointHandler) {

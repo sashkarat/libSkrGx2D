@@ -17,7 +17,6 @@ import org.skr.gx2d.physnodes.physdef.BodyDefinition;
 import org.skr.gx2d.sprite.Sprite;
 import org.skr.gx2d.utils.BBox;
 import org.skr.gx2d.utils.RectangleExt;
-import org.skr.gx2d.utils.Utils;
 
 /**
  * Created by rat on 06.01.15.
@@ -79,6 +78,13 @@ public class BodyHandler extends Sprite {
         this.absorbedImpulse = absorbedImpulse;
     }
 
+    public Vector2 getBodyHandlerWorldCenter() {
+        if ( body == null )
+            return null;
+        return Env.get().world.toView( body.getWorldCenter() );
+    }
+
+
     public FixtureSet getFixtureSet() {
         return fixtureSet;
     }
@@ -98,6 +104,19 @@ public class BodyHandler extends Sprite {
         return fixtureSet;
     }
 
+    public FixtureSet getFixtureSet( Vector2 viewLocalPoint ) {
+        for ( Node n : fixtureSet ) {
+            FixtureSet fs = (FixtureSet) n;
+            for ( Fixture fx : fs.getFixtures() ) {
+                chBBox.set(getX(), getY(), 0, 0 );
+                FixtureSet.getBoundingBoxForFixture( chBBox, fx );
+                if ( chBBox.contains( viewLocalPoint ) )
+                    return fs;
+            }
+        }
+        return null;
+    }
+
     private void updateTransform() {
         if ( body == null )
             return;
@@ -108,6 +127,11 @@ public class BodyHandler extends Sprite {
     }
 
     private final static RectangleExt chBBox = new RectangleExt();
+
+    public RectangleExt getBodyBoundingBox() {
+        updateBodyBoundingBox();
+        return boundingBox;
+    }
 
     private void updateBodyBoundingBox() {
 
